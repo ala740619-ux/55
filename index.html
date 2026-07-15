@@ -1,0 +1,681 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Users, BookOpen, CheckCircle, BarChart3, Settings, 
+  Search, Bell, Menu, X, Plus, LogOut, MessageSquare, 
+  User, Award, AlertCircle, FileText, Smartphone,
+  Check, Clock, UserMinus, UserCheck, Shield
+} from 'lucide-react';
+
+// --- البيانات الافتراضية (Mock Data) ---
+const mockGroups = ['المجموعة التجريبية الأولى'];
+
+const mockStudents = [
+  { id: 1, code: 'ST-001', name: 'طالب تجريبي للاختبار', parentPhone: '01111111111', group: 'المجموعة التجريبية الأولى', status: 'active', img: 'https://i.pravatar.cc/150?img=11' },
+];
+
+const mockStats = {
+  totalStudents: 1,
+  totalGroups: 1,
+  attendanceRate: 0,
+  absentRate: 0,
+};
+
+export default function App() {
+  const [currentView, setCurrentView] = useState('attendance');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [role, setRole] = useState('teacher'); // 'teacher', 'parent'
+  const [toasts, setToasts] = useState([]);
+
+  // Toast Notification System
+  const addToast = (message, type = 'success') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 4000);
+  };
+
+  const changeRole = (newRole) => {
+    setRole(newRole);
+    setCurrentView(newRole === 'parent' ? 'parentPortal' : 'attendance');
+    addToast(`تم تغيير الصلاحية إلى: ${newRole === 'teacher' ? 'مدرس' : 'ولي أمر'}`);
+  };
+
+  return (
+    <div dir="rtl" className="flex h-screen bg-gray-50 font-sans text-gray-800">
+      {/* Toast Container */}
+      <div className="fixed top-4 left-4 z-50 flex flex-col gap-2">
+        {toasts.map(toast => (
+          <div key={toast.id} className={`flex items-center gap-3 p-4 rounded-lg shadow-lg text-white transform transition-all duration-300 translate-y-0 opacity-100 ${toast.type === 'success' ? 'bg-green-600' : 'bg-blue-600'}`}>
+            {toast.type === 'success' ? <CheckCircle size={20} /> : <MessageSquare size={20} />}
+            <span className="font-medium text-sm">{toast.message}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Sidebar - Desktop */}
+      <aside className={`fixed inset-y-0 right-0 z-40 w-64 bg-white border-l border-gray-200 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} md:translate-x-0 md:static md:block`}>
+        <div className="flex flex-col h-full">
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            <div className="flex items-center gap-2 text-indigo-600">
+              <BookOpen size={28} className="stroke-[2.5]" />
+              <span className="text-xl font-bold tracking-tight">الخديوي</span>
+            </div>
+            <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-gray-400 hover:text-gray-600">
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+            {role !== 'parent' && (
+              <>
+                <NavItem icon={<BarChart3 />} label="لوحة التحكم" active={currentView === 'dashboard'} onClick={() => setCurrentView('dashboard')} />
+                <NavItem icon={<Users />} label="إدارة الطلاب" active={currentView === 'students'} onClick={() => setCurrentView('students')} />
+                <NavItem icon={<CheckCircle />} label="الحضور والانصراف" active={currentView === 'attendance'} onClick={() => setCurrentView('attendance')} />
+                <NavItem icon={<Award />} label="التقييمات والامتحانات" active={currentView === 'exams'} onClick={() => setCurrentView('exams')} />
+                <NavItem icon={<MessageSquare />} label="سجل الإشعارات" active={currentView === 'notifications'} onClick={() => setCurrentView('notifications')} />
+                <div className="pt-4 mt-4 border-t border-gray-100">
+                  <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">الإعدادات</p>
+                  <NavItem icon={<Settings />} label="إعدادات النظام" active={currentView === 'settings'} onClick={() => setCurrentView('settings')} />
+                </div>
+              </>
+            )}
+            {role === 'parent' && (
+              <>
+                <NavItem icon={<User />} label="ملف الطالب" active={currentView === 'parentPortal'} onClick={() => setCurrentView('parentPortal')} />
+                <NavItem icon={<Award />} label="الدرجات والتقييمات" active={currentView === 'parentGrades'} onClick={() => setCurrentView('parentPortal')} />
+              </>
+            )}
+          </div>
+
+          {/* Role Switcher (For Demo Purposes) */}
+          <div className="p-4 border-t border-gray-200 bg-gray-50">
+            <p className="text-xs text-gray-500 mb-2 font-medium">محاكي الصلاحيات:</p>
+            <div className="flex gap-1 bg-gray-200 p-1 rounded-lg">
+              <RoleBtn active={role === 'teacher'} onClick={() => changeRole('teacher')}>مدرس</RoleBtn>
+              <RoleBtn active={role === 'parent'} onClick={() => changeRole('parent')}>ولي أمر</RoleBtn>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top Header */}
+        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8 shrink-0">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setIsSidebarOpen(true)} className="md:hidden text-gray-500 hover:text-gray-700">
+              <Menu size={24} />
+            </button>
+            <div className="relative hidden sm:block">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input 
+                type="text" 
+                placeholder="بحث سريع عن طالب (الكود، الاسم)..." 
+                className="pl-4 pr-10 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent w-64 lg:w-96 bg-gray-50"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-100">
+              <Bell size={20} />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+            </button>
+            
+            {/* حالة ربط الواتساب */}
+            <div className="hidden md:flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200">
+              <div className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </div>
+              <span className="text-xs font-bold text-green-700 flex items-center gap-1">
+                <Smartphone size={14} /> واتساب متصل: 01004222623
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 border-r border-gray-200 pr-4">
+              <div className="text-left hidden sm:block">
+                <p className="text-sm font-semibold text-gray-700 leading-tight">
+                  {role === 'teacher' ? 'أ. علاء الدين عيسى' : 'ولي أمر (تجريبي)'}
+                </p>
+                <p className="text-xs text-gray-500">{role === 'parent' ? 'حساب ولي الأمر' : 'لوحة الإدارة'}</p>
+              </div>
+              <img src="https://i.pravatar.cc/150?img=33" alt="Profile" className="w-9 h-9 rounded-full border-2 border-indigo-100" />
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-auto bg-gray-50 p-4 sm:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto space-y-6">
+            
+            {/* View Switching */}
+            {currentView === 'dashboard' && <DashboardView />}
+            {currentView === 'students' && <StudentsView />}
+            {currentView === 'attendance' && <AttendanceView addToast={addToast} />}
+            {currentView === 'exams' && <ExamsView addToast={addToast} />}
+            {currentView === 'parentPortal' && <ParentPortalView />}
+            {currentView === 'notifications' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                 <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><Smartphone className="text-green-500" /> سجل رسائل WhatsApp التلقائية</h2>
+                 <p className="text-sm text-gray-500 mb-6">يتم تسجيل كافة الرسائل المرسلة لأولياء الأمور هنا مع حالة التوصيل.</p>
+                 <div className="space-y-4">
+                    {[1, 2, 3].map((_, i) => (
+                      <div key={i} className="flex items-start gap-4 p-4 border border-gray-100 rounded-lg hover:bg-gray-50">
+                        <div className="bg-green-100 text-green-600 p-2 rounded-full"><Check size={16} /></div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">تم إرسال رسالة حضور إلى ولي أمر "أحمد محمود"</p>
+                          <p className="text-xs text-gray-500 mt-1">اليوم، 09:30 صباحاً • رقم: 01012345678</p>
+                        </div>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// --- Components ---
+
+function NavItem({ icon, label, active, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 ${
+        active 
+          ? 'bg-indigo-50 text-indigo-700 font-semibold' 
+          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+      }`}
+    >
+      <span className={active ? 'text-indigo-600' : 'text-gray-400'}>{icon}</span>
+      <span className="text-sm">{label}</span>
+    </button>
+  );
+}
+
+function RoleBtn({ children, active, onClick }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`flex-1 text-xs font-medium py-1.5 rounded-md transition-colors ${
+        active ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// --- Views ---
+
+function DashboardView() {
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">مرحباً بك في نظام الإدارة</h1>
+          <p className="text-sm text-gray-500 mt-1">إليك ملخص سريع لنشاط المركز اليوم.</p>
+        </div>
+        <button className="hidden sm:flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm">
+          <Plus size={18} />
+          إضافة طالب جديد
+        </button>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={<Users />} title="إجمالي الطلاب" value={mockStats.totalStudents} color="bg-blue-50 text-blue-600" />
+        <StatCard icon={<BookOpen />} title="المجموعات النشطة" value={mockStats.totalGroups} color="bg-purple-50 text-purple-600" />
+        <StatCard icon={<CheckCircle />} title="نسبة الحضور اليوم" value={`${mockStats.attendanceRate}%`} color="bg-green-50 text-green-600" />
+        <StatCard icon={<AlertCircle />} title="نسبة الغياب" value={`${mockStats.absentRate}%`} color="bg-orange-50 text-orange-600" trend="down" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Chart Area (Mock) */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-bold text-gray-800">إحصائيات الحضور الأسبوعية</h2>
+            <select className="text-sm border-gray-200 rounded-md bg-gray-50 focus:ring-indigo-500">
+              <option>هذا الأسبوع</option>
+              <option>هذا الشهر</option>
+            </select>
+          </div>
+          <div className="h-64 flex items-end justify-between gap-2 px-2">
+            {[60, 80, 45, 90, 75, 85, 40].map((h, i) => (
+              <div key={i} className="w-full flex flex-col items-center gap-2">
+                <div className="w-full bg-indigo-100 rounded-t-sm overflow-hidden flex items-end h-48">
+                  <div className="w-full bg-indigo-500 hover:bg-indigo-600 transition-colors rounded-t-sm" style={{ height: `${h}%` }}></div>
+                </div>
+                <span className="text-xs text-gray-500 font-medium">يوم {i+1}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick Alerts */}
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">تنبيهات سريعة</h2>
+          <div className="space-y-4 flex-1 overflow-y-auto pr-2">
+            <AlertItem title="غياب متكرر" desc="الطالب زياد طارق غائب للمرة الثالثة." type="danger" />
+            <AlertItem title="مستوى ممتاز" desc="سارة خالد حصلت على 100% في الامتحان." type="success" />
+            <AlertItem title="اشتراك منتهي" desc="5 طلاب انتهى اشتراكهم هذا الأسبوع." type="warning" />
+          </div>
+          <button className="mt-4 w-full py-2 text-sm text-indigo-600 font-medium bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
+            عرض كل التنبيهات
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ icon, title, value, color, trend }) {
+  return (
+    <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+      <div className={`p-3 rounded-xl ${color}`}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
+        <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
+      </div>
+    </div>
+  );
+}
+
+function AlertItem({ title, desc, type }) {
+  const colors = {
+    danger: 'bg-red-50 text-red-700 border-red-100',
+    success: 'bg-green-50 text-green-700 border-green-100',
+    warning: 'bg-orange-50 text-orange-700 border-orange-100',
+  };
+  return (
+    <div className={`p-3 rounded-lg border ${colors[type]} flex flex-col gap-1`}>
+      <span className="text-sm font-bold">{title}</span>
+      <span className="text-xs opacity-80">{desc}</span>
+    </div>
+  );
+}
+
+function StudentsView() {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in duration-500">
+      <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-gray-800">قائمة الطلاب</h2>
+          <p className="text-sm text-gray-500">إدارة بيانات جميع الطلاب والمجموعات.</p>
+        </div>
+        <div className="flex gap-2">
+          <button className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+            <FileText size={16} />
+            استيراد Excel
+          </button>
+          <button className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+            <Plus size={16} />
+            إضافة طالب
+          </button>
+        </div>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left rtl:text-right text-gray-500">
+          <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="px-6 py-4">الطالب</th>
+              <th className="px-6 py-4">الكود</th>
+              <th className="px-6 py-4">المجموعة</th>
+              <th className="px-6 py-4">ولي الأمر</th>
+              <th className="px-6 py-4">الحالة</th>
+              <th className="px-6 py-4 text-center">إجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {mockStudents.map((student) => (
+              <tr key={student.id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                <td className="px-6 py-3">
+                  <div className="flex items-center gap-3">
+                    <img src={student.img} alt={student.name} className="w-8 h-8 rounded-full bg-gray-200" />
+                    <span className="font-semibold text-gray-900">{student.name}</span>
+                  </div>
+                </td>
+                <td className="px-6 py-3 font-mono text-xs">{student.code}</td>
+                <td className="px-6 py-3">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
+                    {student.group}
+                  </span>
+                </td>
+                <td className="px-6 py-3 text-xs">{student.parentPhone}</td>
+                <td className="px-6 py-3">
+                  {student.status === 'active' && <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700">منتظم</span>}
+                  {student.status === 'warning' && <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-700">إنذار غياب</span>}
+                  {student.status === 'danger' && <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700">معرض للفصل</span>}
+                </td>
+                <td className="px-6 py-3 flex items-center justify-center gap-2">
+                  <button className="text-gray-400 hover:text-indigo-600 transition-colors p-1"><Settings size={16} /></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="p-4 border-t border-gray-200 text-center">
+        <span className="text-sm text-gray-500">يعرض 5 من أصل 450 طالب</span>
+      </div>
+    </div>
+  );
+}
+
+function AttendanceView({ addToast }) {
+  const [selectedGroup, setSelectedGroup] = useState(mockGroups[0] || '');
+  const [attendance, setAttendance] = useState({});
+
+  const handleStatusChange = (studentId, status) => {
+    setAttendance(prev => ({ ...prev, [studentId]: status }));
+  };
+
+  const handleSave = () => {
+    let sentCount = 0;
+    mockStudents.forEach(student => {
+      if (student.group === selectedGroup && attendance[student.id]) {
+        const status = attendance[student.id];
+        let statusText = status === 'present' ? 'حضور' : status === 'absent' ? 'غياب' : 'تأخير';
+        const date = new Date().toLocaleDateString('ar-EG');
+        
+        const message = `السلام عليكم.\nتم تسجيل *${statusText}* للطالب: ${student.name}\nالمجموعة: ${student.group}\nالتاريخ: ${date}\nالوقت: ${new Date().toLocaleTimeString('ar-EG')}`;
+        
+        // تجهيز رقم الموبايل للواتساب (إضافة مفتاح الدولة 2 لجمهورية مصر)
+        let phone = student.parentPhone;
+        if (phone.startsWith('0')) phone = '2' + phone;
+        
+        // فتح الواتساب في نافذة جديدة
+        window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+        sentCount++;
+      }
+    });
+
+    if (sentCount > 0) {
+      addToast('تم حفظ الحضور وتحويلك للواتساب لإرسال الرسالة!', 'success');
+    } else {
+      addToast('يرجى تحديد حالة الحضور للطلاب أولاً.', 'error');
+    }
+  };
+
+  return (
+    <div className="animate-in fade-in duration-500 space-y-6">
+      
+      {/* Control Panel */}
+      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row gap-4 items-end justify-between">
+        <div className="flex-1 w-full flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">اختر المجموعة</label>
+            <select 
+              value={selectedGroup}
+              onChange={(e) => setSelectedGroup(e.target.value)}
+              className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5"
+            >
+              {mockGroups.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">تاريخ اليوم</label>
+            <input type="date" className="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block p-2.5" defaultValue={new Date().toISOString().split('T')[0]} />
+          </div>
+        </div>
+        <button 
+          onClick={handleSave}
+          className="w-full md:w-auto flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors shadow-md shadow-green-600/20"
+        >
+          <Smartphone size={18} />
+          حفظ وإرسال WhatsApp
+        </button>
+      </div>
+
+      {/* Attendance List */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="p-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+          <h3 className="font-bold text-gray-800">كشف الحضور: {selectedGroup}</h3>
+          <span className="text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full font-medium">{mockStudents.length} طلاب</span>
+        </div>
+        
+        <div className="divide-y divide-gray-100">
+          {mockStudents.map(student => (
+            <div key={student.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <img src={student.img} alt={student.name} className="w-10 h-10 rounded-full bg-gray-200" />
+                <div>
+                  <h4 className="font-bold text-gray-900 text-sm">{student.name}</h4>
+                  <span className="text-xs text-gray-500 font-mono">{student.code}</span>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-gray-100/50 p-1.5 rounded-lg border border-gray-100">
+                <RadioStatus 
+                  id={`${student.id}-present`} 
+                  name={`status-${student.id}`} 
+                  label="حاضر" 
+                  color="green" 
+                  icon={<UserCheck size={14}/>}
+                  checked={attendance[student.id] === 'present'}
+                  onChange={() => handleStatusChange(student.id, 'present')}
+                />
+                <RadioStatus 
+                  id={`${student.id}-absent`} 
+                  name={`status-${student.id}`} 
+                  label="غائب" 
+                  color="red" 
+                  icon={<UserMinus size={14}/>}
+                  checked={attendance[student.id] === 'absent'}
+                  onChange={() => handleStatusChange(student.id, 'absent')}
+                />
+                <RadioStatus 
+                  id={`${student.id}-late`} 
+                  name={`status-${student.id}`} 
+                  label="متأخر" 
+                  color="orange" 
+                  icon={<Clock size={14}/>}
+                  checked={attendance[student.id] === 'late'}
+                  onChange={() => handleStatusChange(student.id, 'late')}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Notice box */}
+      <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 flex gap-3 text-blue-800">
+        <Shield className="shrink-0 mt-0.5" size={20} />
+        <div className="text-sm">
+          <p className="font-bold mb-1">الإرسال التلقائي مفعل (رقم المرسل: 01004222623)</p>
+          <p className="opacity-90">الرسائل ستُرسل من رقم المنصة المُسجل (01004222623) إلى أرقام أولياء الأمور المختلفة بناءً على بيانات كل طالب. (تأكد من فتح WhatsApp Web بهذا الرقم على جهازك).</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RadioStatus({ id, name, label, color, icon, checked, onChange }) {
+  const colors = {
+    green: 'peer-checked:bg-green-100 peer-checked:text-green-700 peer-checked:border-green-300 hover:bg-green-50',
+    red: 'peer-checked:bg-red-100 peer-checked:text-red-700 peer-checked:border-red-300 hover:bg-red-50',
+    orange: 'peer-checked:bg-orange-100 peer-checked:text-orange-700 peer-checked:border-orange-300 hover:bg-orange-50',
+  };
+
+  return (
+    <div>
+      <input 
+        type="radio" 
+        id={id} 
+        name={name} 
+        className="hidden peer" 
+        checked={checked}
+        onChange={onChange}
+      />
+      <label 
+        htmlFor={id} 
+        className={`flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 rounded-md text-xs font-semibold text-gray-500 cursor-pointer transition-all ${colors[color]}`}
+      >
+        {icon} {label}
+      </label>
+    </div>
+  );
+}
+
+function ExamsView({ addToast }) {
+  const [evaluations, setEvaluations] = useState({});
+
+  const handleScoreChange = (studentId, field, value) => {
+    setEvaluations(prev => ({
+      ...prev,
+      [studentId]: { ...prev[studentId], [field]: value }
+    }));
+  };
+
+  const sendWhatsApp = (student, type) => {
+    const data = evaluations[student.id] || {};
+    let message = '';
+    
+    if (type === 'evaluation') {
+      if (!data.score) return addToast('يرجى إدخال التقييم أولاً', 'error');
+      message = `*تقييم الطالب:* ${student.name}\n*التقييم:* ${data.score}/10\n*الملاحظات:* ${data.notes || 'لا يوجد ملاحظات إضافية'}\n\nمع تحيات: أ. علاء الدين عيسى`;
+    } else if (type === 'exam') {
+      if (!data.examScore) return addToast('يرجى إدخال درجة الامتحان أولاً', 'error');
+      message = `*تم تسجيل نتيجة امتحان*\n*اسم الطالب:* ${student.name}\n*اسم الامتحان:* ${data.examName || 'امتحان دوري'}\n*الدرجة:* ${data.examScore}\n\nتمنياتنا بالنجاح والتفوق.`;
+    }
+
+    let phone = student.parentPhone;
+    if (phone.startsWith('0')) phone = '2' + phone;
+    
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    addToast('تم التحويل للواتساب بنجاح!', 'success');
+  };
+
+  return (
+    <div className="animate-in fade-in duration-500 space-y-6">
+      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+        <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><Award className="text-indigo-500" /> التقييمات والامتحانات</h2>
+        <div className="divide-y divide-gray-100">
+          {mockStudents.map(student => (
+            <div key={student.id} className="py-6 flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <img src={student.img} alt={student.name} className="w-12 h-12 rounded-full bg-gray-200 shadow-sm" />
+                <div>
+                  <h4 className="font-bold text-gray-900">{student.name}</h4>
+                  <span className="text-xs text-gray-500 inline-flex items-center gap-1 mt-1"><Smartphone size={12}/> {student.parentPhone}</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-5 rounded-xl border border-gray-100">
+                {/* Evaluation Form */}
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-gray-800 border-b pb-2">تقييم الحصة (من 10)</p>
+                  <input type="number" placeholder="الدرجة من 10" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" onChange={(e) => handleScoreChange(student.id, 'score', e.target.value)} />
+                  <input type="text" placeholder="ملاحظات (مثال: ممتاز ويشارك باستمرار)" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" onChange={(e) => handleScoreChange(student.id, 'notes', e.target.value)} />
+                  <button onClick={() => sendWhatsApp(student, 'evaluation')} className="w-full bg-blue-600 hover:bg-blue-700 transition-colors text-white p-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2">
+                    <Smartphone size={18} /> إرسال التقييم لولي الأمر
+                  </button>
+                </div>
+
+                {/* Exam Form */}
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-gray-800 border-b pb-2">درجة الامتحان</p>
+                  <input type="text" placeholder="اسم الامتحان (مثال: امتحان الباب الأول)" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" onChange={(e) => handleScoreChange(student.id, 'examName', e.target.value)} />
+                  <input type="text" placeholder="الدرجة (مثال: 18 من 20)" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" onChange={(e) => handleScoreChange(student.id, 'examScore', e.target.value)} />
+                  <button onClick={() => sendWhatsApp(student, 'exam')} className="w-full bg-indigo-600 hover:bg-indigo-700 transition-colors text-white p-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2">
+                    <Smartphone size={18} /> إرسال الدرجة لولي الأمر
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ParentPortalView() {
+  const student = mockStudents[0]; // Example view for the first student
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500">
+      {/* Profile Header */}
+      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-bl-full -z-10"></div>
+        
+        <img src={student.img} alt={student.name} className="w-24 h-24 rounded-full border-4 border-white shadow-md z-10" />
+        
+        <div className="text-center md:text-right flex-1">
+          <h2 className="text-2xl font-bold text-gray-900">{student.name}</h2>
+          <div className="flex flex-wrap justify-center md:justify-start gap-3 mt-2 text-sm text-gray-500">
+            <span className="flex items-center gap-1"><BookOpen size={16} /> {student.group}</span>
+            <span className="flex items-center gap-1 font-mono"><FileText size={16} /> كود: {student.code}</span>
+          </div>
+        </div>
+        
+        <div className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl text-center shadow-inner">
+          <p className="text-xs font-bold uppercase tracking-wider mb-1">التقييم العام</p>
+          <p className="text-2xl font-black">امتياز</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Attendance Summary */}
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm md:col-span-1">
+           <h3 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
+             <CheckCircle className="text-green-500" size={20} /> سجل الحضور
+           </h3>
+           <div className="relative w-32 h-32 mx-auto mb-4">
+              <svg viewBox="0 0 36 36" className="w-32 h-32 transform -rotate-90">
+                <path className="text-gray-100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path className="text-green-500" strokeDasharray="92, 100" strokeWidth="3" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-bold text-gray-800">92%</span>
+                <span className="text-xs text-gray-500">حضور</span>
+              </div>
+           </div>
+           <div className="space-y-2 mt-6">
+             <div className="flex justify-between text-sm"><span className="text-gray-500">الحصص المحضورة:</span> <span className="font-bold text-gray-800">22</span></div>
+             <div className="flex justify-between text-sm"><span className="text-gray-500">الغياب:</span> <span className="font-bold text-red-600">2</span></div>
+           </div>
+        </div>
+
+        {/* Latest Results */}
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm md:col-span-2">
+           <div className="flex justify-between items-center mb-4">
+             <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+               <Award className="text-indigo-500" size={20} /> أحدث التقييمات والامتحانات
+             </h3>
+             <button className="text-xs text-indigo-600 font-bold hover:underline">عرض الكل</button>
+           </div>
+           
+           <div className="space-y-4">
+              {[
+                { title: 'امتحان الباب الأول (فيزياء)', date: '12 أكتوبر 2023', score: '19/20', desc: 'ممتاز جداً، مع ملاحظة التركيز في المسائل المعقدة.', type: 'exam' },
+                { title: 'تقييم الحصة السابقة', date: '10 أكتوبر 2023', score: '9/10', desc: 'مشاركة ممتازة والتزام بالواجب.', type: 'class' }
+              ].map((item, idx) => (
+                <div key={idx} className="flex flex-col sm:flex-row justify-between p-4 border border-gray-100 rounded-xl hover:shadow-md transition-shadow bg-gray-50/50">
+                  <div>
+                    <h4 className="font-bold text-gray-900 text-sm">{item.title}</h4>
+                    <span className="text-xs text-gray-500 flex items-center gap-1 mt-1"><Clock size={12} /> {item.date}</span>
+                    <p className="text-sm text-gray-600 mt-2 bg-white px-3 py-2 rounded border border-gray-100 inline-block">💬 "{item.desc}"</p>
+                  </div>
+                  <div className="mt-3 sm:mt-0 text-right">
+                    <span className={`inline-block px-3 py-1 rounded-lg text-sm font-bold ${item.type === 'exam' ? 'bg-indigo-100 text-indigo-700' : 'bg-green-100 text-green-700'}`}>
+                      {item.score}
+                    </span>
+                  </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
